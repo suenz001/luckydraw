@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>機率抽獎模擬器</title>
+    <title>孩子獎勵抽抽樂</title>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
         body {
@@ -28,6 +28,7 @@
         }
         h1 { margin-bottom: 10px; font-size: 24px;}
         
+        /* 機率表 */
         .odds-table {
             width: 100%;
             margin: 15px 0;
@@ -37,9 +38,35 @@
         }
         .odds-table td { padding: 4px; border-bottom: 1px solid #46607a; }
         
+        /* 輸入框樣式 */
+        .input-group {
+            margin-top: 20px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #bdc3c7;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #46607a;
+            background: #2c3e50;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: #f1c40f;
+        }
+
+        /* 按鈕樣式 */
         button {
-            background-color: #f1c40f;
-            color: #2c3e50;
             border: none;
             padding: 15px 30px;
             font-size: 20px;
@@ -49,10 +76,26 @@
             transition: transform 0.1s, box-shadow 0.3s;
             width: 100%;
             margin-top: 20px;
+        }
+        
+        .btn-draw {
+            background-color: #f1c40f;
+            color: #2c3e50;
             box-shadow: 0 4px 0 #d4ac0d;
         }
-        button:active { transform: translateY(4px); box-shadow: none; }
-        button:disabled { background-color: #95a5a6; box-shadow: none; cursor: not-allowed; }
+        .btn-draw:active { transform: translateY(4px); box-shadow: none; }
+        .btn-draw:disabled { background-color: #95a5a6; box-shadow: none; cursor: not-allowed; }
+
+        /* 發送 Email 按鈕 (預設隱藏) */
+        .btn-send {
+            background-color: #2ecc71;
+            color: white;
+            box-shadow: 0 4px 0 #27ae60;
+            display: none; /* 一開始不顯示 */
+            font-size: 18px;
+        }
+        .btn-send:hover { background-color: #27ae60; }
+        .btn-send:active { transform: translateY(4px); box-shadow: none; }
 
         #result-card {
             margin-top: 30px;
@@ -67,7 +110,7 @@
             min-height: 40px;
         }
 
-        /* 顏色樣式設定 */
+        /* 顏色樣式 */
         .rank-common { background: #ecf0f1; color: #7f8c8d; border: 2px solid #bdc3c7; text-shadow: none; }
         .rank-uncommon { background: #2ecc71; color: white; border: 2px solid #27ae60; box-shadow: 0 0 10px #2ecc71; }
         .rank-rare { background: #3498db; color: white; border: 2px solid #2980b9; box-shadow: 0 0 15px #3498db; }
@@ -91,13 +134,13 @@
             border-top: 1px solid #46607a;
             padding-top: 10px;
         }
-        .email-status { font-size: 12px; margin-top: 5px; min-height: 18px; }
+        .email-status { font-size: 14px; margin-top: 10px; min-height: 18px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🔮 運氣測試</h1>
+    <h1>🎁 孩子獎勵抽抽樂</h1>
     
     <table class="odds-table">
         <tr><td style="color:#ecf0f1">普通 (60%)</td><td style="color:#2ecc71">罕見 (20%)</td></tr>
@@ -105,10 +148,18 @@
         <tr><td style="color:#e67e22">傳奇 (3%)</td><td style="color:#e74c3c; font-weight:bold;">神話 (1%)</td></tr>
     </table>
 
+    <div class="input-group">
+        <label for="rewardReason">📝 請輸入獎勵事由：</label>
+        <input type="text" id="rewardReason" placeholder="例如：幫忙倒垃圾、考卷100分...">
+    </div>
+
     <div id="result-card">?</div>
-    <div id="emailStatus" class="email-status"></div>
     
-    <button id="drawBtn" onclick="draw()">立即抽選</button>
+    <button id="drawBtn" class="btn-draw" onclick="draw()">🚀 開始抽選</button>
+    
+    <button id="sendEmailBtn" class="btn-send" onclick="confirmSendEmail()">📧 確認並發送紀錄給媽媽</button>
+
+    <div id="emailStatus" class="email-status"></div>
 
     <div class="history" id="historyLog">
         抽獎紀錄將顯示於此...
@@ -117,21 +168,18 @@
 
 <script>
     // ==========================================
-    // ▼ 設定區：EmailJS 資訊 (已填入) ▼
+    // ▼ 設定區 ▼
     // ==========================================
     const EMAIL_SERVICE_ID = "service_ja60kka"; 
     const EMAIL_TEMPLATE_ID = "template_vnh5lyo"; 
     const EMAIL_PUBLIC_KEY = "1xyaEXeOMn5ydv3Ay";   
-    
     const TARGET_EMAIL = "lesley0402@hotmail.com";
     // ==========================================
 
-    // 初始化 EmailJS
     (function(){
         emailjs.init(EMAIL_PUBLIC_KEY);
     })();
 
-    // 獎項設定 (名稱乾淨，無顏色括號)
     const tiers = [
         { name: '普通', class: 'rank-common', probability: 60, colorCode: '#ecf0f1' },
         { name: '罕見', class: 'rank-uncommon', probability: 20, colorCode: '#2ecc71' },
@@ -141,21 +189,31 @@
         { name: '神話', class: 'rank-mythic', probability: 1, colorCode: '#e74c3c' }
     ];
 
-    function draw() {
-        const btn = document.getElementById('drawBtn');
-        const card = document.getElementById('result-card');
-        const history = document.getElementById('historyLog');
-        const status = document.getElementById('emailStatus');
+    let currentResultData = null; // 暫存抽獎結果
 
+    function draw() {
+        const inputReason = document.getElementById('rewardReason').value.trim();
+        if (inputReason === "") {
+            alert("⚠️ 請先輸入獎勵事由喔！(例如：幫忙做家事)");
+            return; // 強制要求輸入
+        }
+
+        const btn = document.getElementById('drawBtn');
+        const sendBtn = document.getElementById('sendEmailBtn');
+        const card = document.getElementById('result-card');
+        const status = document.getElementById('emailStatus');
+        
+        // 重置狀態
         btn.disabled = true;
+        sendBtn.style.display = 'none'; // 隱藏發送按鈕
         status.innerText = "";
+        
         card.style.display = 'block';
         card.className = '';
         card.style.backgroundColor = '#34495e';
         card.innerText = '🎲...';
         
         let flashCount = 0;
-        
         const flashInterval = setInterval(() => {
             const randomTier = tiers[Math.floor(Math.random() * tiers.length)];
             card.style.color = randomTier.colorCode; 
@@ -163,12 +221,12 @@
             
             if (flashCount > 10) { 
                 clearInterval(flashInterval);
-                showResult(card, btn, history, status);
+                finishDraw(card, btn, sendBtn);
             }
         }, 80);
     }
 
-    function showResult(card, btn, history, status) {
+    function finishDraw(card, btn, sendBtn) {
         const rand = Math.random() * 100;
         let cumulative = 0;
         let result = null;
@@ -187,36 +245,70 @@
         card.className = result.class;
         card.innerText = result.name;
 
-        // 寫入畫面紀錄
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString();
-        const p = document.createElement('div');
-        p.innerText = `[${timeStr}] 抽到了：${result.name}`;
-        p.style.color = result.colorCode;
-        history.insertBefore(p, history.firstChild);
+        // 暫存結果供發送使用
+        currentResultData = {
+            name: result.name,
+            colorCode: result.colorCode,
+            time: new Date()
+        };
 
-        // 發送 Email
-        status.innerText = "正在傳送紀錄到 Email...";
-        status.style.color = "#bdc3c7";
+        // 抽完後，顯示發送按鈕，並啟用重抽按鈕
+        btn.disabled = false;
+        sendBtn.style.display = 'block'; 
+        btn.innerText = "🔄 不滿意？再抽一次";
+    }
+
+    function confirmSendEmail() {
+        const reason = document.getElementById('rewardReason').value;
+        const status = document.getElementById('emailStatus');
+        const sendBtn = document.getElementById('sendEmailBtn');
+        const history = document.getElementById('historyLog');
+        const drawBtn = document.getElementById('drawBtn');
+
+        if (!currentResultData) return;
+
+        // 鎖定按鈕防止重複發送
+        sendBtn.disabled = true;
+        sendBtn.innerText = "⏳ 發送中...";
+        drawBtn.disabled = true; // 發送時也不能重抽
 
         const templateParams = {
             to_email: TARGET_EMAIL,
-            prize_name: result.name,
-            draw_time: now.toLocaleString()
+            prize_name: currentResultData.name,
+            reason: reason,
+            draw_time: currentResultData.time.toLocaleString()
         };
 
         emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, templateParams)
             .then(function(response) {
-                console.log('SUCCESS!', response.status, response.text);
-                status.innerText = "✅ Email 紀錄發送成功";
+                // 成功發送
+                status.innerText = "✅ 紀錄已成功寄出！";
                 status.style.color = "#2ecc71";
-                btn.disabled = false;
+                sendBtn.style.display = "none"; // 隱藏發送按鈕
+                sendBtn.disabled = false; // 恢復狀態供下次使用
+                sendBtn.innerText = "📧 確認並發送紀錄給媽媽";
+                
+                // 恢復抽獎按鈕文字
+                drawBtn.disabled = false;
+                drawBtn.innerText = "🚀 開始抽選";
+
+                // 寫入下方歷史紀錄區
+                const p = document.createElement('div');
+                const timeStr = currentResultData.time.toLocaleTimeString();
+                p.innerHTML = `<span style="color:#bdc3c7">[${timeStr}]</span> <span style="color:#f1c40f">${reason}</span> ➜ <span style="color:${currentResultData.colorCode}">${currentResultData.name}</span> (已寄出)`;
+                history.insertBefore(p, history.firstChild);
+
+                // 清空輸入框
+                document.getElementById('rewardReason').value = "";
+                document.getElementById('result-card').style.display = 'none';
+
             }, function(error) {
-                console.log('FAILED...', error);
-                // 顯示錯誤原因，方便除錯
-                status.innerText = "⚠️ Email 發送失敗: " + JSON.stringify(error);
+                // 發送失敗
+                status.innerText = "⚠️ 發送失敗，請再試一次";
                 status.style.color = "#e74c3c";
-                btn.disabled = false;
+                sendBtn.disabled = false;
+                sendBtn.innerText = "📧 確認並發送紀錄給媽媽";
+                drawBtn.disabled = false;
             });
     }
 </script>
