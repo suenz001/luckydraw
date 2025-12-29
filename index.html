@@ -2,9 +2,11 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>孩子獎勵抽抽樂</title>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -16,30 +18,31 @@
             min-height: 100vh;
             margin: 0;
             flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent; /* 移除手機點擊藍框 */
         }
         .container {
             background: #34495e;
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: 15px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-            width: 90%;
+            width: 100%;
             max-width: 450px;
             text-align: center;
         }
-        h1 { margin-bottom: 10px; font-size: 24px;}
+        h1 { margin: 0 0 15px 0; font-size: 24px;}
         
-        /* 機率表 */
         .odds-table {
             width: 100%;
-            margin: 15px 0;
+            margin: 10px 0;
             font-size: 13px;
             color: #bdc3c7;
             border-collapse: collapse;
         }
         .odds-table td { padding: 4px; border-bottom: 1px solid #46607a; }
         
-        /* 輸入框 */
-        .input-group { margin-top: 20px; text-align: left; }
+        .input-group { margin-top: 15px; text-align: left; }
         label { display: block; margin-bottom: 5px; font-size: 14px; color: #bdc3c7; }
         input[type="text"] {
             width: 100%;
@@ -51,21 +54,19 @@
             font-size: 16px;
             box-sizing: border-box;
             outline: none;
-            transition: border-color 0.3s;
         }
         input[type="text"]:focus { border-color: #f1c40f; }
 
-        /* 按鈕 */
         button {
             border: none;
-            padding: 15px 30px;
-            font-size: 20px;
+            padding: 15px;
+            font-size: 18px;
             font-weight: bold;
-            border-radius: 50px;
+            border-radius: 12px;
             cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.3s;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 15px;
+            touch-action: manipulation; /* 優化觸控 */
         }
         .btn-draw { background-color: #f1c40f; color: #2c3e50; box-shadow: 0 4px 0 #d4ac0d; }
         .btn-draw:active { transform: translateY(4px); box-shadow: none; }
@@ -76,31 +77,27 @@
             color: white;
             box-shadow: 0 4px 0 #27ae60;
             display: none;
-            font-size: 18px;
         }
         .btn-send:hover { background-color: #27ae60; }
         .btn-send:active { transform: translateY(4px); box-shadow: none; }
 
-        /* 結果卡片 */
         #result-card {
-            margin-top: 30px;
-            padding: 20px;
+            margin-top: 20px;
+            padding: 15px;
             border-radius: 10px;
             display: none; 
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
             position: relative;
             overflow: hidden;
             min-height: 80px;
-            display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
         }
         
         .tier-label { font-size: 18px; opacity: 0.9; margin-bottom: 5px; }
-        .reward-text { font-size: 26px; font-weight: bold; line-height: 1.3; }
+        .reward-text { font-size: 24px; font-weight: bold; line-height: 1.3; }
 
-        /* 顏色樣式 */
         .rank-common { background: #ecf0f1; color: #7f8c8d; border: 2px solid #bdc3c7; text-shadow: none; }
         .rank-uncommon { background: #2ecc71; color: white; border: 2px solid #27ae60; box-shadow: 0 0 10px #2ecc71; }
         .rank-rare { background: #3498db; color: white; border: 2px solid #2980b9; box-shadow: 0 0 15px #3498db; }
@@ -124,7 +121,7 @@
             border-top: 1px solid #46607a;
             padding-top: 10px;
         }
-        .email-status { font-size: 14px; margin-top: 10px; min-height: 18px; font-weight: bold; }
+        .email-status { font-size: 13px; margin-top: 8px; min-height: 18px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -139,12 +136,12 @@
     </table>
 
     <div class="input-group">
-        <label for="rewardReason">📝 請輸入獎勵事由：</label>
-        <input type="text" id="rewardReason" placeholder="例如：幫忙倒垃圾、考卷100分...">
+        <label for="rewardReason">📝 獎勵事由：</label>
+        <input type="text" id="rewardReason" placeholder="例：幫忙倒垃圾、考卷100分...">
     </div>
 
     <div id="result-card" style="display:none;">
-        <div class="tier-label">準備中...</div>
+        <div class="tier-label"></div>
         <div class="reward-text"></div>
     </div>
     
@@ -159,87 +156,62 @@
 </div>
 
 <script>
-    // ==========================================
-    // ▼ 設定區 (金鑰已填入) ▼
-    // ==========================================
+    // 金鑰設定
     const EMAIL_SERVICE_ID = "service_ja60kka"; 
     const EMAIL_TEMPLATE_ID = "template_vnh5lyo"; 
     const EMAIL_PUBLIC_KEY = "1xyaEXeOMn5ydv3Ay";   
-    
     const TARGET_EMAIL = "lesley0402@hotmail.com";
-    // ==========================================
 
     (function(){ emailjs.init(EMAIL_PUBLIC_KEY); })();
 
-    // 定義獎項與對應的獎勵清單
     const tiers = [
         { 
             name: '普通', 
             class: 'rank-common', 
             probability: 60, 
             colorCode: '#ecf0f1',
-            rewards: [
-                '小日記減少一行',
-                '假日玩電動加5分鐘',
-                '假日爸爸陪玩電動5分鐘',
-                '減少看書時間5分鐘'
-            ]
+            confetti: false, // 普通不噴彩帶
+            rewards: ['小日記減少一行','假日玩電動加5分鐘','假日爸爸陪玩電動5分鐘','減少看書時間5分鐘']
         },
         { 
             name: '罕見', 
             class: 'rank-uncommon', 
             probability: 20, 
             colorCode: '#2ecc71',
-            rewards: [
-                '小日記減少二行',
-                '假日玩電動加10分鐘',
-                '假日爸爸陪玩電動10分鐘',
-                '減少看書時間10分鐘'
-            ]
+            confetti: false,
+            rewards: ['小日記減少二行','假日玩電動加10分鐘','假日爸爸陪玩電動10分鐘','減少看書時間10分鐘']
         },
         { 
             name: '稀有', 
             class: 'rank-rare', 
             probability: 10, 
             colorCode: '#3498db',
-            rewards: [
-                '小日記減少三行',
-                '假日玩電動加15分鐘',
-                '假日爸爸陪玩電動15分鐘',
-                '減少看書時間15分鐘',
-                '媽媽陪睡覺'
-            ]
+            confetti: true, // 稀有開始噴彩帶！
+            rewards: ['小日記減少三行','假日玩電動加15分鐘','假日爸爸陪玩電動15分鐘','減少看書時間15分鐘','媽媽陪睡覺']
         },
         { 
             name: '史詩', 
             class: 'rank-epic', 
             probability: 6, 
             colorCode: '#9b59b6',
-            rewards: [
-                '小日記減少四行',
-                '平日可玩電動10分鐘',
-                '假日爸爸陪玩電動15分鐘'
-            ]
+            confetti: true,
+            rewards: ['小日記減少四行','平日可玩電動10分鐘','假日爸爸陪玩電動15分鐘']
         },
         { 
             name: '傳奇', 
             class: 'rank-legendary', 
             probability: 3, 
             colorCode: '#e67e22',
-            rewards: [
-                '平日可玩電動15分鐘',
-                '零用錢100元'
-            ]
+            confetti: true,
+            rewards: ['平日可玩電動15分鐘','零用錢100元']
         },
         { 
             name: '神話', 
             class: 'rank-mythic', 
             probability: 1, 
             colorCode: '#e74c3c',
-            rewards: [
-                '平日可玩電動30分鐘',
-                '可任意選購500元內的小禮物'
-            ]
+            confetti: true,
+            rewards: ['平日可玩電動30分鐘','可任意選購500元內的小禮物']
         }
     ];
 
@@ -277,7 +249,6 @@
             const randomTier = tiers[Math.floor(Math.random() * tiers.length)];
             card.style.color = randomTier.colorCode; 
             flashCount++;
-            
             if (flashCount > 10) { 
                 clearInterval(flashInterval);
                 finishDraw(card, btn, sendBtn);
@@ -289,19 +260,14 @@
         const rand = Math.random() * 100;
         let cumulative = 0;
         let selectedTier = null;
-
         for (let tier of tiers) {
             cumulative += tier.probability;
-            if (rand < cumulative) {
-                selectedTier = tier;
-                break;
-            }
+            if (rand < cumulative) { selectedTier = tier; break; }
         }
         if (!selectedTier) selectedTier = tiers[0];
 
         const randomReward = selectedTier.rewards[Math.floor(Math.random() * selectedTier.rewards.length)];
 
-        // 顯示結果
         card.style.color = '';
         card.className = selectedTier.class;
         
@@ -310,9 +276,13 @@
         
         tierLabel.innerText = selectedTier.name;
         tierLabel.style.fontSize = "18px";
-        
         rewardText.innerText = randomReward;
         rewardText.style.fontSize = "26px";
+
+        // ★★★ 觸發彩帶特效 ★★★
+        if (selectedTier.confetti) {
+            triggerConfetti();
+        }
 
         currentResultData = {
             fullPrizeName: `${selectedTier.name} - ${randomReward}`,
@@ -323,6 +293,24 @@
         btn.disabled = false;
         sendBtn.style.display = 'block'; 
         btn.innerText = "🔄 不滿意？再抽一次";
+    }
+
+    // 彩帶特效函式
+    function triggerConfetti() {
+        var count = 200;
+        var defaults = { origin: { y: 0.7 } };
+
+        function fire(particleRatio, opts) {
+            confetti(Object.assign({}, defaults, opts, {
+                particleCount: Math.floor(count * particleRatio)
+            }));
+        }
+
+        fire(0.25, { spread: 26, startVelocity: 55, });
+        fire(0.2, { spread: 60, });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+        fire(0.1, { spread: 120, startVelocity: 45, });
     }
 
     function confirmSendEmail() {
@@ -352,7 +340,6 @@
                 sendBtn.style.display = "none"; 
                 sendBtn.disabled = false; 
                 sendBtn.innerText = "📧 確認並發送紀錄給媽媽";
-                
                 drawBtn.disabled = false;
                 drawBtn.innerText = "🚀 開始抽選";
 
@@ -363,7 +350,6 @@
                 p.style.paddingBottom = "5px";
                 p.style.marginBottom = "5px";
                 history.insertBefore(p, history.firstChild);
-
                 document.getElementById('rewardReason').value = "";
                 document.getElementById('result-card').style.display = 'none';
 
