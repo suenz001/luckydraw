@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>孩子獎勵抽抽樂 (究極版)</title>
+    <title>孩子獎勵抽抽樂 (點數版)</title>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
@@ -34,14 +34,13 @@
         }
         h1 { margin: 0 0 15px 0; font-size: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         
-        /* === 跑馬燈區域樣式 === */
+        /* === 跑馬燈區域 === */
         .roulette-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin-bottom: 20px;
         }
-        
         .tier-box {
             padding: 10px 5px;
             border-radius: 8px;
@@ -51,28 +50,24 @@
             color: #7f8c8d;
             border: 2px solid #46607a;
             opacity: 0.4;
-            transition: transform 0.1s, opacity 0.1s, box-shadow 0.1s;
+            transition: transform 0.1s, opacity 0.1s;
         }
+        .tier-box.active { opacity: 1; transform: scale(1.05); z-index: 10; }
         
-        /* 選中時的高亮樣式 */
-        .tier-box.active {
-            opacity: 1;
-            transform: scale(1.05);
-            z-index: 10;
-        }
-
-        .tier-box.active.rank-common { background: #ecf0f1; color: #555; border-color: #bdc3c7; box-shadow: 0 0 15px #ecf0f1; }
-        .tier-box.active.rank-uncommon { background: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 0 15px #2ecc71; }
-        .tier-box.active.rank-rare { background: #3498db; color: white; border-color: #2980b9; box-shadow: 0 0 15px #3498db; }
-        .tier-box.active.rank-epic { background: #9b59b6; color: white; border-color: #8e44ad; box-shadow: 0 0 15px #9b59b6; }
-        .tier-box.active.rank-legendary { background: #e67e22; color: white; border-color: #d35400; box-shadow: 0 0 20px #e67e22; }
+        /* 各等級顏色 */
+        .tier-box.active.rank-common { background: #ecf0f1; color: #555; box-shadow: 0 0 15px #ecf0f1; }
+        .tier-box.active.rank-uncommon { background: #2ecc71; color: white; box-shadow: 0 0 15px #2ecc71; }
+        .tier-box.active.rank-rare { background: #3498db; color: white; box-shadow: 0 0 15px #3498db; }
+        .tier-box.active.rank-epic { background: #9b59b6; color: white; box-shadow: 0 0 15px #9b59b6; }
+        .tier-box.active.rank-legendary { background: #e67e22; color: white; box-shadow: 0 0 20px #e67e22; }
         .tier-box.active.rank-mythic { background: #e74c3c; color: white; border-color: #ffd700; box-shadow: 0 0 25px #e74c3c; }
 
+        /* === 輸入區域 === */
         .input-group { margin-top: 10px; text-align: left; }
         label { display: block; margin-bottom: 5px; font-size: 14px; color: #bdc3c7; }
-        input[type="text"] {
+        input[type="text"], input[type="number"] {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             border-radius: 10px;
             border: 2px solid #34495e;
             background: #1a252f;
@@ -81,9 +76,12 @@
             box-sizing: border-box;
             outline: none;
             transition: 0.3s;
+            margin-bottom: 10px;
         }
-        input[type="text"]:focus { border-color: #f1c40f; box-shadow: 0 0 8px rgba(241, 196, 15, 0.3); }
+        input:focus { border-color: #f1c40f; }
+        input:disabled { background: #2c3e50; color: #95a5a6; border-color: #46607a; }
 
+        /* === 按鈕 === */
         button {
             border: none;
             padding: 16px;
@@ -92,38 +90,53 @@
             border-radius: 12px;
             cursor: pointer;
             width: 100%;
-            margin-top: 15px;
+            margin-top: 10px;
             touch-action: manipulation;
-            transition: transform 0.1s;
         }
         .btn-draw { background: linear-gradient(145deg, #f1c40f, #d4ac0d); color: #2c3e50; box-shadow: 0 4px 0 #b7950b; }
         .btn-draw:active { transform: translateY(4px); box-shadow: none; }
         .btn-draw:disabled { background: #95a5a6; box-shadow: none; cursor: not-allowed; filter: grayscale(1); }
-
+        
         .btn-send { background: linear-gradient(145deg, #2ecc71, #27ae60); color: white; box-shadow: 0 4px 0 #219150; display: none; }
         .btn-send:hover { filter: brightness(1.1); }
-        .btn-send:active { transform: translateY(4px); box-shadow: none; }
-
+        
+        /* === 狀態顯示 === */
+        #points-display {
+            background: #34495e;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #bdc3c7;
+            border: 1px dashed #46607a;
+            display: none; /* 初始隱藏 */
+        }
         #result-display {
-            margin-top: 20px;
-            font-size: 22px;
+            margin-top: 15px;
+            font-size: 20px;
             font-weight: bold;
-            min-height: 40px;
+            min-height: 30px;
             color: #f1c40f;
             text-shadow: 0 2px 2px rgba(0,0,0,0.5);
         }
 
         .history {
-            margin-top: 25px;
+            margin-top: 20px;
             font-size: 13px;
             color: #95a5a6;
             max-height: 150px;
             overflow-y: auto;
             text-align: left;
             border-top: 1px solid #34495e;
-            padding-top: 15px;
+            padding-top: 10px;
         }
         .email-status { font-size: 13px; margin-top: 10px; min-height: 20px; font-weight: bold; }
+        
+        .session-item {
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #46607a;
+        }
     </style>
 </head>
 <body>
@@ -141,20 +154,22 @@
     </div>
 
     <div class="input-group">
-        <label for="rewardReason">📝 獎勵事由：</label>
-        <input type="text" id="rewardReason" placeholder="例：幫忙倒垃圾、考卷100分...">
+        <label>📝 步驟1：輸入獎勵事由</label>
+        <input type="text" id="rewardReason" placeholder="例：幫忙倒垃圾...">
+        
+        <label>🔢 步驟2：輸入點數 (100點/次)</label>
+        <input type="number" id="rewardPoints" placeholder="輸入點數 (例如 200)">
     </div>
 
-    <div id="result-display">準備抽獎...</div>
+    <div id="points-display"></div>
+    <div id="result-display">準備開始...</div>
     
-    <button id="drawBtn" class="btn-draw" onclick="startRoulette()">🚀 啟動轉盤</button>
-    <button id="sendEmailBtn" class="btn-send" onclick="confirmSendEmail()">📧 確認並發送紀錄給媽媽</button>
+    <button id="drawBtn" class="btn-draw" onclick="handleDrawClick()">🚀 計算點數並開始</button>
+    <button id="sendEmailBtn" class="btn-send" onclick="confirmSendEmail()">📧 抽獎結束，發送紀錄給媽媽</button>
 
     <div id="emailStatus" class="email-status"></div>
 
-    <div class="history" id="historyLog">
-        抽獎紀錄將顯示於此...
-    </div>
+    <div class="history" id="historyLog"></div>
 </div>
 
 <script>
@@ -175,17 +190,22 @@
         { id: 5, name: '神話', probability: 1, colorCode: '#e74c3c', confetti: true, rewards: ['平日可玩電動30分鐘','可任意選購500元內的小禮物', '打手心處罰減免一次'] }
     ];
 
-    let currentResultData = null; 
     let audioCtx = null; 
+    let sessionData = {
+        active: false,
+        totalDraws: 0,
+        currentDraw: 0,
+        results: [], // 儲存這次所有的抽獎結果
+        reason: "",
+        points: 0
+    };
 
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
         }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
     function playTickSound() {
@@ -220,26 +240,94 @@
         });
     }
 
-    function startRoulette() {
-        const inputReason = document.getElementById('rewardReason').value.trim();
-        if (inputReason === "") {
-            alert("⚠️ 請先輸入獎勵事由喔！");
+    // === 主控制邏輯 ===
+    function handleDrawClick() {
+        const drawBtn = document.getElementById('drawBtn');
+        
+        // 如果還沒開始一輪新的抽獎
+        if (!sessionData.active) {
+            startNewSession();
+        } else {
+            // 已經在抽獎模式中，執行轉盤
+            runRoulette();
+        }
+    }
+
+    function startNewSession() {
+        const reasonInput = document.getElementById('rewardReason');
+        const pointsInput = document.getElementById('rewardPoints');
+        const pointsDisplay = document.getElementById('points-display');
+        const drawBtn = document.getElementById('drawBtn');
+        const resultDisplay = document.getElementById('result-display');
+        const sendBtn = document.getElementById('sendEmailBtn');
+        const history = document.getElementById('historyLog');
+
+        const reason = reasonInput.value.trim();
+        const points = parseInt(pointsInput.value);
+
+        // 驗證
+        if (reason === "") {
+            alert("⚠️ 請先輸入「獎勵事由」！");
+            return;
+        }
+        if (isNaN(points) || points < 100) {
+            alert("⚠️ 點數不足！每 100 點才能抽一次喔。");
             return;
         }
 
+        // 初始化 Audio
         initAudio();
 
-        const btn = document.getElementById('drawBtn');
-        const sendBtn = document.getElementById('sendEmailBtn');
-        const display = document.getElementById('result-display');
-        const status = document.getElementById('emailStatus');
+        // 計算次數
+        const allowedDraws = Math.floor(points / 100);
 
-        btn.disabled = true;
-        sendBtn.style.display = 'none'; 
-        status.innerText = "";
+        // 設定 Session 狀態
+        sessionData = {
+            active: true,
+            totalDraws: allowedDraws,
+            currentDraw: 0,
+            results: [],
+            reason: reason,
+            points: points
+        };
+
+        // UI 鎖定與更新
+        reasonInput.disabled = true;
+        pointsInput.disabled = true;
+        sendBtn.style.display = 'none'; // 隱藏發送按鈕
+        history.innerHTML = ""; // 清空舊紀錄顯示
+        
+        pointsDisplay.style.display = 'block';
+        updateStatusDisplay();
+
+        // 自動開始第一次轉動
+        runRoulette();
+    }
+
+    function updateStatusDisplay() {
+        const pointsDisplay = document.getElementById('points-display');
+        const drawBtn = document.getElementById('drawBtn');
+        const remaining = sessionData.totalDraws - sessionData.currentDraw;
+
+        if (remaining > 0) {
+            pointsDisplay.innerHTML = `總點數：<span style="color:#f1c40f">${sessionData.points}</span>｜可抽次數：${sessionData.totalDraws}｜<span style="color:#2ecc71">剩餘：${remaining} 次</span>`;
+            drawBtn.innerText = `🎲 開始第 ${sessionData.currentDraw + 1} 次抽選`;
+            drawBtn.disabled = false;
+        } else {
+            pointsDisplay.innerHTML = `所有次數已用完！請確認並發送紀錄。`;
+            drawBtn.style.display = 'none'; // 隱藏抽獎按鈕
+        }
+    }
+
+    function runRoulette() {
+        const drawBtn = document.getElementById('drawBtn');
+        const display = document.getElementById('result-display');
+        
+        drawBtn.disabled = true;
         display.innerText = "🎲 轉盤轉動中...";
         display.style.color = "#f1c40f";
 
+        // 預先計算結果
         const rand = Math.random() * 100;
         let cumulative = 0;
         let selectedTier = null;
@@ -250,11 +338,10 @@
         if (!selectedTier) selectedTier = tiers[0];
         const randomReward = selectedTier.rewards[Math.floor(Math.random() * selectedTier.rewards.length)];
 
+        // 跑馬燈邏輯
         let currentIndex = 0;
-        let speed = 40; // 稍微加快初始速度
+        let speed = 40;
         let totalSteps = 0;
-        
-        // ★★★ 關鍵修改：將 minCycles 從 3 改為 6，延長跑馬燈時間 ★★★
         const minCycles = 6; 
         const targetSteps = (minCycles * 6) + selectedTier.id; 
 
@@ -262,116 +349,107 @@
 
         function step() {
             document.querySelectorAll('.tier-box').forEach(b => b.classList.remove('active'));
-            
             let boxIndex = currentIndex % 6;
             const currentBox = document.getElementById(`tier-${boxIndex}`);
             currentBox.classList.add('active'); 
             
             playTickSound();
-            
             if (navigator.vibrate) navigator.vibrate(10);
 
             if (totalSteps >= targetSteps) {
-                finishDraw(selectedTier, randomReward, btn, sendBtn, display);
+                // 停止，結算這一次
+                finishSingleDraw(selectedTier, randomReward);
             } else {
                 totalSteps++;
                 currentIndex++;
-                
-                // 減速邏輯
-                if (totalSteps > targetSteps - 12) { // 最後 12 步開始減速
-                    speed += 25; // 慢慢變慢
-                }
+                if (totalSteps > targetSteps - 12) speed += 25;
                 setTimeout(step, speed);
             }
         }
-
-        step(); 
+        step();
     }
 
-    function finishDraw(tier, reward, btn, sendBtn, display) {
+    function finishSingleDraw(tier, reward) {
         playWinSound();
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]); 
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
+        const display = document.getElementById('result-display');
         display.innerHTML = `<span style="color:${tier.colorCode}">${tier.name}</span> - ${reward}`;
-        
-        if (tier.confetti) {
-            triggerConfetti();
+
+        if (tier.confetti) triggerConfetti();
+
+        // 儲存結果
+        const resultString = `[第${sessionData.currentDraw + 1}抽] ${tier.name} - ${reward}`;
+        sessionData.results.push({
+            text: resultString,
+            color: tier.colorCode
+        });
+
+        // 顯示在下方紀錄區 (倒序插入，新的在上面)
+        const history = document.getElementById('historyLog');
+        const p = document.createElement('div');
+        p.className = 'session-item';
+        p.innerHTML = `<span style="color:${tier.colorCode}">${resultString}</span>`;
+        history.insertBefore(p, history.firstChild);
+
+        // 更新計數
+        sessionData.currentDraw++;
+        updateStatusDisplay();
+
+        // 檢查是否抽完
+        if (sessionData.currentDraw >= sessionData.totalDraws) {
+            // 全部抽完
+            const sendBtn = document.getElementById('sendEmailBtn');
+            sendBtn.style.display = 'block'; // 顯示發送按鈕
+            display.innerHTML += "<br><span style='font-size:16px; color:#bdc3c7'>(所有次數已用完)</span>";
         }
-
-        currentResultData = {
-            fullPrizeName: `${tier.name} - ${reward}`,
-            colorCode: tier.colorCode,
-            time: new Date()
-        };
-
-        btn.disabled = false;
-        sendBtn.style.display = 'block'; 
-        btn.innerText = "🔄 不滿意？再抽一次";
     }
 
     function triggerConfetti() {
         var count = 200;
         var defaults = { origin: { y: 0.7 } };
         function fire(particleRatio, opts) {
-            confetti(Object.assign({}, defaults, opts, {
-                particleCount: Math.floor(count * particleRatio)
-            }));
+            confetti(Object.assign({}, defaults, opts, { particleCount: Math.floor(count * particleRatio) }));
         }
         fire(0.25, { spread: 26, startVelocity: 55, });
         fire(0.2, { spread: 60, });
         fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-        fire(0.1, { spread: 120, startVelocity: 45, });
     }
 
     function confirmSendEmail() {
-        const reason = document.getElementById('rewardReason').value;
-        const status = document.getElementById('emailStatus');
         const sendBtn = document.getElementById('sendEmailBtn');
-        const history = document.getElementById('historyLog');
-        const drawBtn = document.getElementById('drawBtn');
-
-        if (!currentResultData) return;
-
+        const status = document.getElementById('emailStatus');
+        
         sendBtn.disabled = true;
-        sendBtn.innerText = "⏳ 發送中...";
-        drawBtn.disabled = true; 
+        sendBtn.innerText = "⏳ 發送紀錄中...";
 
+        // 組合 Email 內容
+        // 將所有結果合併成一個字串，用換行符號隔開
+        const resultSummary = sessionData.results.map(r => r.text).join('\n');
+        
         const templateParams = {
             to_email: TARGET_EMAIL,
-            prize_name: currentResultData.fullPrizeName,
-            reason: reason,
-            draw_time: currentResultData.time.toLocaleString()
+            prize_name: resultSummary, // 這裡會放入多行結果
+            reason: `${sessionData.reason} (使用點數:${sessionData.points})`,
+            draw_time: new Date().toLocaleString()
         };
 
         emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, templateParams)
             .then(function(response) {
                 status.innerText = "✅ 紀錄已成功寄出！";
                 status.style.color = "#2ecc71";
-                sendBtn.style.display = "none"; 
-                sendBtn.disabled = false; 
-                sendBtn.innerText = "📧 確認並發送紀錄給媽媽";
-                drawBtn.disabled = false;
-                drawBtn.innerText = "🚀 啟動轉盤";
-
-                const p = document.createElement('div');
-                const timeStr = currentResultData.time.toLocaleTimeString();
-                p.innerHTML = `<span style="color:#bdc3c7">[${timeStr}]</span> <span style="color:#f1c40f">${reason}</span> <br>➜ <span style="color:${currentResultData.colorCode}; font-weight:bold;">${currentResultData.fullPrizeName}</span> (已寄出)`;
-                p.style.borderBottom = "1px dashed #46607a";
-                p.style.paddingBottom = "5px";
-                p.style.marginBottom = "5px";
-                history.insertBefore(p, history.firstChild);
-                document.getElementById('rewardReason').value = "";
-                document.getElementById('result-display').innerText = "準備抽獎...";
-                document.getElementById('result-display').style.color = "#f1c40f";
-                document.querySelectorAll('.tier-box').forEach(b => b.classList.remove('active'));
+                sendBtn.innerText = "🎉 獎勵發送完成";
+                
+                // 3秒後重置頁面
+                setTimeout(() => {
+                    location.reload(); // 簡單暴力重整頁面，讓一切重置
+                }, 3000);
 
             }, function(error) {
                 status.innerText = "⚠️ 發送失敗: " + JSON.stringify(error);
                 status.style.color = "#e74c3c";
                 sendBtn.disabled = false;
-                sendBtn.innerText = "📧 確認並發送紀錄給媽媽";
-                drawBtn.disabled = false;
+                sendBtn.innerText = "📧 重試發送";
             });
     }
 </script>
