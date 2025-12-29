@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #2c3e50; /*以此深色背景襯托顏色*/
+            background-color: #2c3e50;
             color: white;
             display: flex;
             justify-content: center;
@@ -27,7 +27,6 @@
         }
         h1 { margin-bottom: 10px; font-size: 24px;}
         
-        /* 機率表樣式 */
         .odds-table {
             width: 100%;
             margin: 15px 0;
@@ -54,20 +53,20 @@
         button:active { transform: translateY(4px); box-shadow: none; }
         button:disabled { background-color: #95a5a6; box-shadow: none; cursor: not-allowed; }
 
-        /* 顯示結果的卡片 */
         #result-card {
             margin-top: 30px;
             padding: 20px;
             border-radius: 10px;
             font-size: 28px;
             font-weight: bold;
-            display: none; /* 預設隱藏 */
+            display: none; 
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
             position: relative;
             overflow: hidden;
+            min-height: 40px; /* 避免文字改變時高度跳動 */
         }
 
-        /* 各種稀有度的樣式設定 */
+        /* 稀有度樣式 */
         .rank-common { 
             background: #ecf0f1; color: #7f8c8d; border: 2px solid #bdc3c7; 
             text-shadow: none;
@@ -107,7 +106,10 @@
             max-height: 100px;
             overflow-y: auto;
             text-align: left;
+            border-top: 1px solid #46607a;
+            padding-top: 10px;
         }
+        .history div { margin-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -131,15 +133,14 @@
 </div>
 
 <script>
-    // 定義獎項與機率 (權重累積法)
-    // 順序很重要，機率小的通常放在最後判斷，或者使用累積機率區間
+    // 在這裡直接定義顏色代碼，避免讀取錯誤
     const tiers = [
-        { name: '普通 (白色)', class: 'rank-common', probability: 60 },
-        { name: '罕見 (綠色)', class: 'rank-uncommon', probability: 20 },
-        { name: '稀有 (藍色)', class: 'rank-rare', probability: 10 },
-        { name: '史詩 (紫色)', class: 'rank-epic', probability: 6 },
-        { name: '傳奇 (橘色)', class: 'rank-legendary', probability: 3 },
-        { name: '神話 (紅色)', class: 'rank-mythic', probability: 1 }
+        { name: '普通 (白色)', class: 'rank-common', probability: 60, colorCode: '#ecf0f1' },
+        { name: '罕見 (綠色)', class: 'rank-uncommon', probability: 20, colorCode: '#2ecc71' },
+        { name: '稀有 (藍色)', class: 'rank-rare', probability: 10, colorCode: '#3498db' },
+        { name: '史詩 (紫色)', class: 'rank-epic', probability: 6, colorCode: '#9b59b6' },
+        { name: '傳奇 (橘色)', class: 'rank-legendary', probability: 3, colorCode: '#e67e22' },
+        { name: '神話 (紅色)', class: 'rank-mythic', probability: 1, colorCode: '#e74c3c' }
     ];
 
     function draw() {
@@ -147,21 +148,23 @@
         const card = document.getElementById('result-card');
         const history = document.getElementById('historyLog');
 
-        // 動畫效果：按鈕暫時失效
+        // 鎖定按鈕
         btn.disabled = true;
         card.style.display = 'block';
         card.className = ''; // 清除舊樣式
-        card.style.backgroundColor = '#34495e'; // 動畫時的背景
+        card.style.backgroundColor = '#34495e'; // 動畫背景設為深色
         card.innerText = '🎲...';
         
         let flashCount = 0;
+        
+        // 閃爍動畫
         const flashInterval = setInterval(() => {
-            // 隨機閃爍顏色製造緊張感
             const randomTier = tiers[Math.floor(Math.random() * tiers.length)];
-            card.style.color = window.getComputedStyle(document.querySelector('.' + randomTier.class)).backgroundColor;
+            // 使用上面定義好的 colorCode，確保不會出錯
+            card.style.color = randomTier.colorCode; 
             flashCount++;
             
-            if (flashCount > 10) { // 閃爍 10 次後停止
+            if (flashCount > 10) { 
                 clearInterval(flashInterval);
                 showResult(card, btn, history);
             }
@@ -169,12 +172,10 @@
     }
 
     function showResult(card, btn, history) {
-        // 核心機率邏輯：產生 0 ~ 100 之間的隨機數
         const rand = Math.random() * 100;
         let cumulative = 0;
         let result = null;
 
-        // 依序檢查落在哪個區間
         for (let tier of tiers) {
             cumulative += tier.probability;
             if (rand < cumulative) {
@@ -182,19 +183,22 @@
                 break;
             }
         }
+        
+        // 如果因為浮點數誤差沒抓到 (極少發生)，預設為最後一個或普通
+        if (!result) result = tiers[0];
 
         // 顯示結果
-        card.className = result.class; // 套用對應顏色的 CSS
-        card.style.color = ''; // 移除剛剛閃爍強制設定的顏色
-        card.style.backgroundColor = ''; // 恢復 CSS 設定的背景
+        card.style.color = ''; // 移除動畫時的顏色強制設定
+        card.className = result.class; // 套用 CSS class
         card.innerText = result.name;
 
         // 寫入紀錄
         const p = document.createElement('div');
-        p.innerText = `抽到了：${result.name}`;
-        // 將新紀錄插在最上面
+        p.innerText = `[${new Date().toLocaleTimeString()}] 抽到了：${result.name}`;
+        p.style.color = result.colorCode; // 讓紀錄文字也有顏色
         history.insertBefore(p, history.firstChild);
 
+        // 解鎖按鈕
         btn.disabled = false;
     }
 </script>
