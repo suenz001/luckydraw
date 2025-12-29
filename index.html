@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>機率抽獎模擬器</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -63,145 +64,8 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
             position: relative;
             overflow: hidden;
-            min-height: 40px; /* 避免文字改變時高度跳動 */
+            min-height: 40px;
         }
 
-        /* 稀有度樣式 */
-        .rank-common { 
-            background: #ecf0f1; color: #7f8c8d; border: 2px solid #bdc3c7; 
-            text-shadow: none;
-        }
-        .rank-uncommon { 
-            background: #2ecc71; color: white; border: 2px solid #27ae60;
-            box-shadow: 0 0 10px #2ecc71;
-        }
-        .rank-rare { 
-            background: #3498db; color: white; border: 2px solid #2980b9;
-            box-shadow: 0 0 15px #3498db;
-        }
-        .rank-epic { 
-            background: #9b59b6; color: white; border: 2px solid #8e44ad;
-            box-shadow: 0 0 20px #9b59b6;
-        }
-        .rank-legendary { 
-            background: #e67e22; color: white; border: 2px solid #d35400;
-            box-shadow: 0 0 25px #e67e22, 0 0 50px #e67e22;
-        }
-        .rank-mythic { 
-            background: #e74c3c; color: white; border: 2px solid #c0392b;
-            box-shadow: 0 0 30px #e74c3c, 0 0 60px #e74c3c, inset 0 0 20px white;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .history {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #95a5a6;
-            max-height: 100px;
-            overflow-y: auto;
-            text-align: left;
-            border-top: 1px solid #46607a;
-            padding-top: 10px;
-        }
-        .history div { margin-bottom: 4px; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h1>🔮 運氣測試</h1>
-    
-    <table class="odds-table">
-        <tr><td style="color:#ecf0f1">普通 (60%)</td><td style="color:#2ecc71">罕見 (20%)</td></tr>
-        <tr><td style="color:#3498db">稀有 (10%)</td><td style="color:#9b59b6">史詩 (6%)</td></tr>
-        <tr><td style="color:#e67e22">傳奇 (3%)</td><td style="color:#e74c3c; font-weight:bold;">神話 (1%)</td></tr>
-    </table>
-
-    <div id="result-card">?</div>
-    
-    <button id="drawBtn" onclick="draw()">立即抽選</button>
-
-    <div class="history" id="historyLog">
-        抽獎紀錄將顯示於此...
-    </div>
-</div>
-
-<script>
-    // 在這裡直接定義顏色代碼，避免讀取錯誤
-    const tiers = [
-        { name: '普通 (白色)', class: 'rank-common', probability: 60, colorCode: '#ecf0f1' },
-        { name: '罕見 (綠色)', class: 'rank-uncommon', probability: 20, colorCode: '#2ecc71' },
-        { name: '稀有 (藍色)', class: 'rank-rare', probability: 10, colorCode: '#3498db' },
-        { name: '史詩 (紫色)', class: 'rank-epic', probability: 6, colorCode: '#9b59b6' },
-        { name: '傳奇 (橘色)', class: 'rank-legendary', probability: 3, colorCode: '#e67e22' },
-        { name: '神話 (紅色)', class: 'rank-mythic', probability: 1, colorCode: '#e74c3c' }
-    ];
-
-    function draw() {
-        const btn = document.getElementById('drawBtn');
-        const card = document.getElementById('result-card');
-        const history = document.getElementById('historyLog');
-
-        // 鎖定按鈕
-        btn.disabled = true;
-        card.style.display = 'block';
-        card.className = ''; // 清除舊樣式
-        card.style.backgroundColor = '#34495e'; // 動畫背景設為深色
-        card.innerText = '🎲...';
-        
-        let flashCount = 0;
-        
-        // 閃爍動畫
-        const flashInterval = setInterval(() => {
-            const randomTier = tiers[Math.floor(Math.random() * tiers.length)];
-            // 使用上面定義好的 colorCode，確保不會出錯
-            card.style.color = randomTier.colorCode; 
-            flashCount++;
-            
-            if (flashCount > 10) { 
-                clearInterval(flashInterval);
-                showResult(card, btn, history);
-            }
-        }, 80);
-    }
-
-    function showResult(card, btn, history) {
-        const rand = Math.random() * 100;
-        let cumulative = 0;
-        let result = null;
-
-        for (let tier of tiers) {
-            cumulative += tier.probability;
-            if (rand < cumulative) {
-                result = tier;
-                break;
-            }
-        }
-        
-        // 如果因為浮點數誤差沒抓到 (極少發生)，預設為最後一個或普通
-        if (!result) result = tiers[0];
-
-        // 顯示結果
-        card.style.color = ''; // 移除動畫時的顏色強制設定
-        card.className = result.class; // 套用 CSS class
-        card.innerText = result.name;
-
-        // 寫入紀錄
-        const p = document.createElement('div');
-        p.innerText = `[${new Date().toLocaleTimeString()}] 抽到了：${result.name}`;
-        p.style.color = result.colorCode; // 讓紀錄文字也有顏色
-        history.insertBefore(p, history.firstChild);
-
-        // 解鎖按鈕
-        btn.disabled = false;
-    }
-</script>
-
-</body>
-</html>
+        /* 顏色樣式設定 */
+        .rank-common { background: #ecf0f1; color: #7f8c8d; border: 2px solid #bdc3
