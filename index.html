@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>機率抽獎模擬器</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50; /*以此深色背景襯托顏色*/
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+        .container {
+            background: #34495e;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 { margin-bottom: 10px; font-size: 24px;}
+        
+        /* 機率表樣式 */
+        .odds-table {
+            width: 100%;
+            margin: 15px 0;
+            font-size: 14px;
+            color: #bdc3c7;
+            border-collapse: collapse;
+        }
+        .odds-table td { padding: 4px; border-bottom: 1px solid #46607a; }
+        
+        button {
+            background-color: #f1c40f;
+            color: #2c3e50;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.3s;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 4px 0 #d4ac0d;
+        }
+        button:active { transform: translateY(4px); box-shadow: none; }
+        button:disabled { background-color: #95a5a6; box-shadow: none; cursor: not-allowed; }
+
+        /* 顯示結果的卡片 */
+        #result-card {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 28px;
+            font-weight: bold;
+            display: none; /* 預設隱藏 */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 各種稀有度的樣式設定 */
+        .rank-common { 
+            background: #ecf0f1; color: #7f8c8d; border: 2px solid #bdc3c7; 
+            text-shadow: none;
+        }
+        .rank-uncommon { 
+            background: #2ecc71; color: white; border: 2px solid #27ae60;
+            box-shadow: 0 0 10px #2ecc71;
+        }
+        .rank-rare { 
+            background: #3498db; color: white; border: 2px solid #2980b9;
+            box-shadow: 0 0 15px #3498db;
+        }
+        .rank-epic { 
+            background: #9b59b6; color: white; border: 2px solid #8e44ad;
+            box-shadow: 0 0 20px #9b59b6;
+        }
+        .rank-legendary { 
+            background: #e67e22; color: white; border: 2px solid #d35400;
+            box-shadow: 0 0 25px #e67e22, 0 0 50px #e67e22;
+        }
+        .rank-mythic { 
+            background: #e74c3c; color: white; border: 2px solid #c0392b;
+            box-shadow: 0 0 30px #e74c3c, 0 0 60px #e74c3c, inset 0 0 20px white;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .history {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #95a5a6;
+            max-height: 100px;
+            overflow-y: auto;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔮 運氣測試</h1>
+    
+    <table class="odds-table">
+        <tr><td style="color:#ecf0f1">普通 (60%)</td><td style="color:#2ecc71">罕見 (20%)</td></tr>
+        <tr><td style="color:#3498db">稀有 (10%)</td><td style="color:#9b59b6">史詩 (6%)</td></tr>
+        <tr><td style="color:#e67e22">傳奇 (3%)</td><td style="color:#e74c3c; font-weight:bold;">神話 (1%)</td></tr>
+    </table>
+
+    <div id="result-card">?</div>
+    
+    <button id="drawBtn" onclick="draw()">立即抽選</button>
+
+    <div class="history" id="historyLog">
+        抽獎紀錄將顯示於此...
+    </div>
+</div>
+
+<script>
+    // 定義獎項與機率 (權重累積法)
+    // 順序很重要，機率小的通常放在最後判斷，或者使用累積機率區間
+    const tiers = [
+        { name: '普通 (白色)', class: 'rank-common', probability: 60 },
+        { name: '罕見 (綠色)', class: 'rank-uncommon', probability: 20 },
+        { name: '稀有 (藍色)', class: 'rank-rare', probability: 10 },
+        { name: '史詩 (紫色)', class: 'rank-epic', probability: 6 },
+        { name: '傳奇 (橘色)', class: 'rank-legendary', probability: 3 },
+        { name: '神話 (紅色)', class: 'rank-mythic', probability: 1 }
+    ];
+
+    function draw() {
+        const btn = document.getElementById('drawBtn');
+        const card = document.getElementById('result-card');
+        const history = document.getElementById('historyLog');
+
+        // 動畫效果：按鈕暫時失效
+        btn.disabled = true;
+        card.style.display = 'block';
+        card.className = ''; // 清除舊樣式
+        card.style.backgroundColor = '#34495e'; // 動畫時的背景
+        card.innerText = '🎲...';
+        
+        let flashCount = 0;
+        const flashInterval = setInterval(() => {
+            // 隨機閃爍顏色製造緊張感
+            const randomTier = tiers[Math.floor(Math.random() * tiers.length)];
+            card.style.color = window.getComputedStyle(document.querySelector('.' + randomTier.class)).backgroundColor;
+            flashCount++;
+            
+            if (flashCount > 10) { // 閃爍 10 次後停止
+                clearInterval(flashInterval);
+                showResult(card, btn, history);
+            }
+        }, 80);
+    }
+
+    function showResult(card, btn, history) {
+        // 核心機率邏輯：產生 0 ~ 100 之間的隨機數
+        const rand = Math.random() * 100;
+        let cumulative = 0;
+        let result = null;
+
+        // 依序檢查落在哪個區間
+        for (let tier of tiers) {
+            cumulative += tier.probability;
+            if (rand < cumulative) {
+                result = tier;
+                break;
+            }
+        }
+
+        // 顯示結果
+        card.className = result.class; // 套用對應顏色的 CSS
+        card.style.color = ''; // 移除剛剛閃爍強制設定的顏色
+        card.style.backgroundColor = ''; // 恢復 CSS 設定的背景
+        card.innerText = result.name;
+
+        // 寫入紀錄
+        const p = document.createElement('div');
+        p.innerText = `抽到了：${result.name}`;
+        // 將新紀錄插在最上面
+        history.insertBefore(p, history.firstChild);
+
+        btn.disabled = false;
+    }
+</script>
+
+</body>
+</html>
