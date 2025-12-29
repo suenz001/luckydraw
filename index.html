@@ -28,7 +28,7 @@
             border-radius: 20px;
             box-shadow: 0 15px 30px rgba(0,0,0,0.4);
             width: 100%;
-            max-width: 500px; /* 加寬一點給跑馬燈 */
+            max-width: 500px;
             text-align: center;
             border: 1px solid #34495e;
         }
@@ -37,7 +37,7 @@
         /* === 跑馬燈區域樣式 === */
         .roulette-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 手機版一行三個 */
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin-bottom: 20px;
         }
@@ -50,18 +50,17 @@
             background: #34495e;
             color: #7f8c8d;
             border: 2px solid #46607a;
-            opacity: 0.4; /* 沒選到時變暗 */
+            opacity: 0.4;
             transition: transform 0.1s, opacity 0.1s, box-shadow 0.1s;
         }
         
-        /* 選中時的高亮樣式 (Active) */
+        /* 選中時的高亮樣式 */
         .tier-box.active {
             opacity: 1;
             transform: scale(1.05);
             z-index: 10;
         }
 
-        /* 各等級選中時的顏色 */
         .tier-box.active.rank-common { background: #ecf0f1; color: #555; border-color: #bdc3c7; box-shadow: 0 0 15px #ecf0f1; }
         .tier-box.active.rank-uncommon { background: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 0 15px #2ecc71; }
         .tier-box.active.rank-rare { background: #3498db; color: white; border-color: #2980b9; box-shadow: 0 0 15px #3498db; }
@@ -177,9 +176,8 @@
     ];
 
     let currentResultData = null; 
-    let audioCtx = null; // 音效引擎
+    let audioCtx = null; 
 
-    // === 音效生成系統 (Web Audio API) ===
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -190,15 +188,14 @@
         }
     }
 
-    // 播放「滴」的跳動聲
     function playTickSound() {
         if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'sine'; // 正弦波 (圓潤的嗶聲)
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime); // 頻率 800Hz
+        osc.type = 'sine'; 
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
         osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime); // 音量
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime); 
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -206,12 +203,10 @@
         osc.stop(audioCtx.currentTime + 0.1);
     }
 
-    // 播放「登登登」的中獎聲
     function playWinSound() {
         if (!audioCtx) return;
         const now = audioCtx.currentTime;
-        // 簡單的三連音
-        [523.25, 659.25, 783.99].forEach((freq, i) => { // C Major Chord
+        [523.25, 659.25, 783.99].forEach((freq, i) => { 
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'triangle';
@@ -225,7 +220,6 @@
         });
     }
 
-    // === 跑馬燈抽獎邏輯 ===
     function startRoulette() {
         const inputReason = document.getElementById('rewardReason').value.trim();
         if (inputReason === "") {
@@ -233,7 +227,6 @@
             return;
         }
 
-        // 1. 啟動音效引擎 (iOS必須在點擊時觸發)
         initAudio();
 
         const btn = document.getElementById('drawBtn');
@@ -247,7 +240,6 @@
         display.innerText = "🎲 轉盤轉動中...";
         display.style.color = "#f1c40f";
 
-        // 2. 預先計算結果
         const rand = Math.random() * 100;
         let cumulative = 0;
         let selectedTier = null;
@@ -258,60 +250,50 @@
         if (!selectedTier) selectedTier = tiers[0];
         const randomReward = selectedTier.rewards[Math.floor(Math.random() * selectedTier.rewards.length)];
 
-        // 3. 設定跑馬燈參數
         let currentIndex = 0;
-        let speed = 50; // 初始速度 (ms)
+        let speed = 40; // 稍微加快初始速度
         let totalSteps = 0;
-        // 至少跑 3 圈 (3 * 6 = 18) + 目標索引
-        const minCycles = 3;
+        
+        // ★★★ 關鍵修改：將 minCycles 從 3 改為 6，延長跑馬燈時間 ★★★
+        const minCycles = 6; 
         const targetSteps = (minCycles * 6) + selectedTier.id; 
 
-        // 清除所有高亮
         document.querySelectorAll('.tier-box').forEach(b => b.classList.remove('active'));
 
         function step() {
-            // 移除上一個的高亮
             document.querySelectorAll('.tier-box').forEach(b => b.classList.remove('active'));
             
-            // 計算目前亮哪一格 (0~5)
             let boxIndex = currentIndex % 6;
             const currentBox = document.getElementById(`tier-${boxIndex}`);
-            currentBox.classList.add('active'); // 亮起
+            currentBox.classList.add('active'); 
             
-            // 播放跳動音效
             playTickSound();
             
-            // 震動 (輕微)
             if (navigator.vibrate) navigator.vibrate(10);
 
             if (totalSteps >= targetSteps) {
-                // === 停止 ===
                 finishDraw(selectedTier, randomReward, btn, sendBtn, display);
             } else {
-                // === 繼續跑 ===
                 totalSteps++;
                 currentIndex++;
                 
-                // 減速邏輯 (最後 10 步開始變慢)
-                if (totalSteps > targetSteps - 10) {
-                    speed += 30; // 每次加 30ms
+                // 減速邏輯
+                if (totalSteps > targetSteps - 12) { // 最後 12 步開始減速
+                    speed += 25; // 慢慢變慢
                 }
                 setTimeout(step, speed);
             }
         }
 
-        step(); // 開始遞迴
+        step(); 
     }
 
     function finishDraw(tier, reward, btn, sendBtn, display) {
-        // 播放中獎音效
         playWinSound();
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // 強烈震動
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]); 
 
-        // 顯示文字結果
         display.innerHTML = `<span style="color:${tier.colorCode}">${tier.name}</span> - ${reward}`;
         
-        // 特效
         if (tier.confetti) {
             triggerConfetti();
         }
@@ -327,7 +309,6 @@
         btn.innerText = "🔄 不滿意？再抽一次";
     }
 
-    // 彩帶特效
     function triggerConfetti() {
         var count = 200;
         var defaults = { origin: { y: 0.7 } };
@@ -383,7 +364,6 @@
                 document.getElementById('rewardReason').value = "";
                 document.getElementById('result-display').innerText = "準備抽獎...";
                 document.getElementById('result-display').style.color = "#f1c40f";
-                // 重置跑馬燈高亮
                 document.querySelectorAll('.tier-box').forEach(b => b.classList.remove('active'));
 
             }, function(error) {
