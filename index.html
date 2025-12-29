@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>孩子獎勵抽抽樂 (豪華版)</title>
+    <title>孩子獎勵抽抽樂 (究極版)</title>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
@@ -28,22 +28,48 @@
             border-radius: 20px;
             box-shadow: 0 15px 30px rgba(0,0,0,0.4);
             width: 100%;
-            max-width: 450px;
+            max-width: 500px; /* 加寬一點給跑馬燈 */
             text-align: center;
             border: 1px solid #34495e;
         }
         h1 { margin: 0 0 15px 0; font-size: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         
-        .odds-table {
-            width: 100%;
-            margin: 10px 0;
-            font-size: 13px;
-            color: #bdc3c7;
-            border-collapse: collapse;
+        /* === 跑馬燈區域樣式 === */
+        .roulette-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 手機版一行三個 */
+            gap: 8px;
+            margin-bottom: 20px;
         }
-        .odds-table td { padding: 5px; border-bottom: 1px solid #34495e; }
         
-        .input-group { margin-top: 15px; text-align: left; }
+        .tier-box {
+            padding: 10px 5px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            background: #34495e;
+            color: #7f8c8d;
+            border: 2px solid #46607a;
+            opacity: 0.4; /* 沒選到時變暗 */
+            transition: transform 0.1s, opacity 0.1s, box-shadow 0.1s;
+        }
+        
+        /* 選中時的高亮樣式 (Active) */
+        .tier-box.active {
+            opacity: 1;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        /* 各等級選中時的顏色 */
+        .tier-box.active.rank-common { background: #ecf0f1; color: #555; border-color: #bdc3c7; box-shadow: 0 0 15px #ecf0f1; }
+        .tier-box.active.rank-uncommon { background: #2ecc71; color: white; border-color: #27ae60; box-shadow: 0 0 15px #2ecc71; }
+        .tier-box.active.rank-rare { background: #3498db; color: white; border-color: #2980b9; box-shadow: 0 0 15px #3498db; }
+        .tier-box.active.rank-epic { background: #9b59b6; color: white; border-color: #8e44ad; box-shadow: 0 0 15px #9b59b6; }
+        .tier-box.active.rank-legendary { background: #e67e22; color: white; border-color: #d35400; box-shadow: 0 0 20px #e67e22; }
+        .tier-box.active.rank-mythic { background: #e74c3c; color: white; border-color: #ffd700; box-shadow: 0 0 25px #e74c3c; }
+
+        .input-group { margin-top: 10px; text-align: left; }
         label { display: block; margin-bottom: 5px; font-size: 14px; color: #bdc3c7; }
         input[type="text"] {
             width: 100%;
@@ -69,82 +95,24 @@
             width: 100%;
             margin-top: 15px;
             touch-action: manipulation;
-            transition: transform 0.1s, filter 0.2s;
+            transition: transform 0.1s;
         }
-        .btn-draw { 
-            background: linear-gradient(145deg, #f1c40f, #d4ac0d);
-            color: #2c3e50; 
-            box-shadow: 0 4px 0 #b7950b; 
-        }
+        .btn-draw { background: linear-gradient(145deg, #f1c40f, #d4ac0d); color: #2c3e50; box-shadow: 0 4px 0 #b7950b; }
         .btn-draw:active { transform: translateY(4px); box-shadow: none; }
         .btn-draw:disabled { background: #95a5a6; box-shadow: none; cursor: not-allowed; filter: grayscale(1); }
 
-        .btn-send {
-            background: linear-gradient(145deg, #2ecc71, #27ae60);
-            color: white;
-            box-shadow: 0 4px 0 #219150;
-            display: none;
-        }
+        .btn-send { background: linear-gradient(145deg, #2ecc71, #27ae60); color: white; box-shadow: 0 4px 0 #219150; display: none; }
         .btn-send:hover { filter: brightness(1.1); }
         .btn-send:active { transform: translateY(4px); box-shadow: none; }
 
-        /* === 卡片視覺大升級 === */
-        #result-card {
-            margin-top: 25px;
-            padding: 25px 15px;
-            border-radius: 15px;
-            display: none; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            position: relative;
-            overflow: hidden;
-            min-height: 100px;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: all 0.3s ease;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        #result-display {
+            margin-top: 20px;
+            font-size: 22px;
+            font-weight: bold;
+            min-height: 40px;
+            color: #f1c40f;
+            text-shadow: 0 2px 2px rgba(0,0,0,0.5);
         }
-        
-        .tier-label { font-size: 16px; margin-bottom: 8px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9; }
-        .reward-text { font-size: 26px; font-weight: bold; line-height: 1.4; word-break: break-word; }
-
-        /* 漸層背景定義 */
-        .rank-common { 
-            background: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%); 
-            color: #555; border: 2px solid #95a5a6; 
-            text-shadow: none;
-        }
-        .rank-uncommon { 
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); 
-            color: white; border: 2px solid #2ecc71;
-            box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
-        }
-        .rank-rare { 
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); 
-            color: white; border: 2px solid #3498db;
-            box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
-        }
-        .rank-epic { 
-            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); 
-            color: white; border: 2px solid #9b59b6;
-            box-shadow: 0 0 25px rgba(155, 89, 182, 0.6);
-        }
-        .rank-legendary { 
-            background: linear-gradient(135deg, #f39c12 0%, #d35400 100%); 
-            color: white; border: 2px solid #f1c40f;
-            box-shadow: 0 0 30px rgba(243, 156, 18, 0.7);
-            animation: glow 2s infinite alternate;
-        }
-        .rank-mythic { 
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); 
-            color: white; 
-            border: 3px solid #ffd700; /* 金色邊框 */
-            box-shadow: 0 0 40px rgba(231, 76, 60, 0.8), inset 0 0 20px rgba(255, 215, 0, 0.3);
-            animation: pulse-mythic 1.5s infinite;
-        }
-
-        @keyframes glow { from { box-shadow: 0 0 20px #e67e22; } to { box-shadow: 0 0 40px #f1c40f; } }
-        @keyframes pulse-mythic { 0% { transform: scale(1); border-color: #ffd700; } 50% { transform: scale(1.03); border-color: #fff; } 100% { transform: scale(1); border-color: #ffd700; } }
 
         .history {
             margin-top: 25px;
@@ -164,23 +132,23 @@
 <div class="container">
     <h1>🎁 孩子獎勵抽抽樂</h1>
     
-    <table class="odds-table">
-        <tr><td style="color:#ecf0f1">普通 (60%)</td><td style="color:#2ecc71">罕見 (20%)</td></tr>
-        <tr><td style="color:#3498db">稀有 (10%)</td><td style="color:#9b59b6">史詩 (6%)</td></tr>
-        <tr><td style="color:#e67e22">傳奇 (3%)</td><td style="color:#e74c3c; font-weight:bold;">神話 (1%)</td></tr>
-    </table>
+    <div class="roulette-container">
+        <div id="tier-0" class="tier-box rank-common">普通</div>
+        <div id="tier-1" class="tier-box rank-uncommon">罕見</div>
+        <div id="tier-2" class="tier-box rank-rare">稀有</div>
+        <div id="tier-3" class="tier-box rank-epic">史詩</div>
+        <div id="tier-4" class="tier-box rank-legendary">傳奇</div>
+        <div id="tier-5" class="tier-box rank-mythic">神話</div>
+    </div>
 
     <div class="input-group">
         <label for="rewardReason">📝 獎勵事由：</label>
         <input type="text" id="rewardReason" placeholder="例：幫忙倒垃圾、考卷100分...">
     </div>
 
-    <div id="result-card" style="display:none;">
-        <div class="tier-label"></div>
-        <div class="reward-text"></div>
-    </div>
+    <div id="result-display">準備抽獎...</div>
     
-    <button id="drawBtn" class="btn-draw" onclick="startDraw()">🚀 開始抽選</button>
+    <button id="drawBtn" class="btn-draw" onclick="startRoulette()">🚀 啟動轉盤</button>
     <button id="sendEmailBtn" class="btn-send" onclick="confirmSendEmail()">📧 確認並發送紀錄給媽媽</button>
 
     <div id="emailStatus" class="email-status"></div>
@@ -200,117 +168,86 @@
     (function(){ emailjs.init(EMAIL_PUBLIC_KEY); })();
 
     const tiers = [
-        { 
-            name: '普通', 
-            class: 'rank-common', 
-            probability: 60, 
-            colorCode: '#ecf0f1',
-            confetti: false,
-            rewards: ['小日記減少一行','假日玩電動加5分鐘','假日爸爸陪玩電動5分鐘','減少看書時間5分鐘']
-        },
-        { 
-            name: '罕見', 
-            class: 'rank-uncommon', 
-            probability: 20, 
-            colorCode: '#2ecc71',
-            confetti: false,
-            rewards: ['小日記減少二行','假日玩電動加10分鐘','假日爸爸陪玩電動10分鐘','減少看書時間10分鐘']
-        },
-        { 
-            name: '稀有', 
-            class: 'rank-rare', 
-            probability: 10, 
-            colorCode: '#3498db',
-            confetti: true,
-            rewards: ['小日記減少三行','假日玩電動加15分鐘','假日爸爸陪玩電動15分鐘','減少看書時間15分鐘','媽媽陪睡覺']
-        },
-        { 
-            name: '史詩', 
-            class: 'rank-epic', 
-            probability: 6, 
-            colorCode: '#9b59b6',
-            confetti: true,
-            rewards: ['小日記減少四行','平日可玩電動10分鐘','假日爸爸陪玩電動15分鐘']
-        },
-        { 
-            name: '傳奇', 
-            class: 'rank-legendary', 
-            probability: 3, 
-            colorCode: '#e67e22',
-            confetti: true,
-            rewards: ['平日可玩電動15分鐘','零用錢100元']
-        },
-        { 
-            name: '神話', 
-            class: 'rank-mythic', 
-            probability: 1, 
-            colorCode: '#e74c3c',
-            confetti: true,
-            rewards: ['平日可玩電動30分鐘','可任意選購500元內的小禮物', '打手心處罰減免一次']
-        }
+        { id: 0, name: '普通', probability: 60, colorCode: '#ecf0f1', confetti: false, rewards: ['小日記減少一行','假日玩電動加5分鐘','假日爸爸陪玩電動5分鐘','減少看書時間5分鐘'] },
+        { id: 1, name: '罕見', probability: 20, colorCode: '#2ecc71', confetti: false, rewards: ['小日記減少二行','假日玩電動加10分鐘','假日爸爸陪玩電動10分鐘','減少看書時間10分鐘'] },
+        { id: 2, name: '稀有', probability: 10, colorCode: '#3498db', confetti: true, rewards: ['小日記減少三行','假日玩電動加15分鐘','假日爸爸陪玩電動15分鐘','減少看書時間15分鐘','媽媽陪睡覺'] },
+        { id: 3, name: '史詩', probability: 6, colorCode: '#9b59b6', confetti: true, rewards: ['小日記減少四行','平日可玩電動10分鐘','假日爸爸陪玩電動15分鐘'] },
+        { id: 4, name: '傳奇', probability: 3, colorCode: '#e67e22', confetti: true, rewards: ['平日可玩電動15分鐘','零用錢100元'] },
+        { id: 5, name: '神話', probability: 1, colorCode: '#e74c3c', confetti: true, rewards: ['平日可玩電動30分鐘','可任意選購500元內的小禮物', '打手心處罰減免一次'] }
     ];
 
     let currentResultData = null; 
+    let audioCtx = null; // 音效引擎
 
-    // === 新版抽獎邏輯 (物理煞車效果) ===
-    function startDraw() {
+    // === 音效生成系統 (Web Audio API) ===
+    function initAudio() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    // 播放「滴」的跳動聲
+    function playTickSound() {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine'; // 正弦波 (圓潤的嗶聲)
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime); // 頻率 800Hz
+        osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime); // 音量
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    // 播放「登登登」的中獎聲
+    function playWinSound() {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        // 簡單的三連音
+        [523.25, 659.25, 783.99].forEach((freq, i) => { // C Major Chord
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + i * 0.1);
+            gain.gain.setValueAtTime(0.1, now + i * 0.1);
+            gain.gain.linearRampToValueAtTime(0, now + i * 0.1 + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.1);
+            osc.stop(now + i * 0.1 + 0.3);
+        });
+    }
+
+    // === 跑馬燈抽獎邏輯 ===
+    function startRoulette() {
         const inputReason = document.getElementById('rewardReason').value.trim();
         if (inputReason === "") {
             alert("⚠️ 請先輸入獎勵事由喔！");
             return;
         }
 
+        // 1. 啟動音效引擎 (iOS必須在點擊時觸發)
+        initAudio();
+
         const btn = document.getElementById('drawBtn');
         const sendBtn = document.getElementById('sendEmailBtn');
-        const card = document.getElementById('result-card');
+        const display = document.getElementById('result-display');
         const status = document.getElementById('emailStatus');
-        const tierLabel = card.querySelector('.tier-label');
-        const rewardText = card.querySelector('.reward-text');
-        
+
         btn.disabled = true;
         sendBtn.style.display = 'none'; 
         status.innerText = "";
-        
-        // 初始狀態
-        card.style.display = 'flex';
-        card.className = ''; 
-        card.style.background = '#34495e'; // 抽獎中的暗色背景
-        card.style.boxShadow = 'none';
-        
-        tierLabel.innerText = "🎲";
-        rewardText.innerText = "抽選中...";
-        rewardText.style.fontSize = "20px";
-        
-        // 開始「快->慢」的動畫
-        let speed = 50; // 初始速度 (毫秒)
-        let steps = 0;  // 跑了幾步
-        const maxSteps = 25; // 總共跑幾步停下來
+        display.innerText = "🎲 轉盤轉動中...";
+        display.style.color = "#f1c40f";
 
-        function loop() {
-            // 隨機閃爍
-            const randomTier = tiers[Math.floor(Math.random() * tiers.length)];
-            card.style.color = randomTier.colorCode;
-            
-            // 手機震動回饋 (輕微)
-            if (navigator.vibrate) navigator.vibrate(15); 
-
-            steps++;
-
-            if (steps < maxSteps) {
-                // 變慢的邏輯：每一步增加 10% 的時間
-                speed = Math.floor(speed * 1.1);
-                setTimeout(loop, speed);
-            } else {
-                // 停止，顯示結果
-                finishDraw(card, btn, sendBtn);
-            }
-        }
-        
-        loop(); // 啟動迴圈
-    }
-
-    function finishDraw(card, btn, sendBtn) {
-        // 1. 計算機率
+        // 2. 預先計算結果
         const rand = Math.random() * 100;
         let cumulative = 0;
         let selectedTier = null;
@@ -319,32 +256,69 @@
             if (rand < cumulative) { selectedTier = tier; break; }
         }
         if (!selectedTier) selectedTier = tiers[0];
-
-        // 2. 隨機獎品
         const randomReward = selectedTier.rewards[Math.floor(Math.random() * selectedTier.rewards.length)];
 
-        // 3. 顯示結果 (套用新的 CSS Class)
-        card.style.color = ''; // 清除行內樣式，改用 class 控制
-        card.style.background = ''; 
-        card.className = selectedTier.class; // 套用漸層背景
-        
-        const tierLabel = card.querySelector('.tier-label');
-        const rewardText = card.querySelector('.reward-text');
-        
-        tierLabel.innerText = selectedTier.name;
-        rewardText.innerText = randomReward;
-        rewardText.style.fontSize = "26px";
+        // 3. 設定跑馬燈參數
+        let currentIndex = 0;
+        let speed = 50; // 初始速度 (ms)
+        let totalSteps = 0;
+        // 至少跑 3 圈 (3 * 6 = 18) + 目標索引
+        const minCycles = 3;
+        const targetSteps = (minCycles * 6) + selectedTier.id; 
 
-        // 4. 特效與震動
-        if (selectedTier.confetti) {
+        // 清除所有高亮
+        document.querySelectorAll('.tier-box').forEach(b => b.classList.remove('active'));
+
+        function step() {
+            // 移除上一個的高亮
+            document.querySelectorAll('.tier-box').forEach(b => b.classList.remove('active'));
+            
+            // 計算目前亮哪一格 (0~5)
+            let boxIndex = currentIndex % 6;
+            const currentBox = document.getElementById(`tier-${boxIndex}`);
+            currentBox.classList.add('active'); // 亮起
+            
+            // 播放跳動音效
+            playTickSound();
+            
+            // 震動 (輕微)
+            if (navigator.vibrate) navigator.vibrate(10);
+
+            if (totalSteps >= targetSteps) {
+                // === 停止 ===
+                finishDraw(selectedTier, randomReward, btn, sendBtn, display);
+            } else {
+                // === 繼續跑 ===
+                totalSteps++;
+                currentIndex++;
+                
+                // 減速邏輯 (最後 10 步開始變慢)
+                if (totalSteps > targetSteps - 10) {
+                    speed += 30; // 每次加 30ms
+                }
+                setTimeout(step, speed);
+            }
+        }
+
+        step(); // 開始遞迴
+    }
+
+    function finishDraw(tier, reward, btn, sendBtn, display) {
+        // 播放中獎音效
+        playWinSound();
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // 強烈震動
+
+        // 顯示文字結果
+        display.innerHTML = `<span style="color:${tier.colorCode}">${tier.name}</span> - ${reward}`;
+        
+        // 特效
+        if (tier.confetti) {
             triggerConfetti();
         }
-        // 中獎震動 (強烈)
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
         currentResultData = {
-            fullPrizeName: `${selectedTier.name} - ${randomReward}`,
-            colorCode: selectedTier.colorCode,
+            fullPrizeName: `${tier.name} - ${reward}`,
+            colorCode: tier.colorCode,
             time: new Date()
         };
 
@@ -397,7 +371,7 @@
                 sendBtn.disabled = false; 
                 sendBtn.innerText = "📧 確認並發送紀錄給媽媽";
                 drawBtn.disabled = false;
-                drawBtn.innerText = "🚀 開始抽選";
+                drawBtn.innerText = "🚀 啟動轉盤";
 
                 const p = document.createElement('div');
                 const timeStr = currentResultData.time.toLocaleTimeString();
@@ -407,7 +381,10 @@
                 p.style.marginBottom = "5px";
                 history.insertBefore(p, history.firstChild);
                 document.getElementById('rewardReason').value = "";
-                document.getElementById('result-card').style.display = 'none';
+                document.getElementById('result-display').innerText = "準備抽獎...";
+                document.getElementById('result-display').style.color = "#f1c40f";
+                // 重置跑馬燈高亮
+                document.querySelectorAll('.tier-box').forEach(b => b.classList.remove('active'));
 
             }, function(error) {
                 status.innerText = "⚠️ 發送失敗: " + JSON.stringify(error);
