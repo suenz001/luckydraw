@@ -23,7 +23,7 @@
             border-radius: 15px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
             width: 90%;
-            max-width: 450px; /* 稍微加寬以容納長文字 */
+            max-width: 450px;
             text-align: center;
         }
         h1 { margin-bottom: 10px; font-size: 24px;}
@@ -81,7 +81,7 @@
         .btn-send:hover { background-color: #27ae60; }
         .btn-send:active { transform: translateY(4px); box-shadow: none; }
 
-        /* 結果卡片優化 */
+        /* 結果卡片 */
         #result-card {
             margin-top: 30px;
             padding: 20px;
@@ -90,14 +90,13 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
             position: relative;
             overflow: hidden;
-            min-height: 80px; /* 加高一點 */
+            min-height: 80px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
         }
         
-        /* 卡片內的文字排版 */
         .tier-label { font-size: 18px; opacity: 0.9; margin-bottom: 5px; }
         .reward-text { font-size: 26px; font-weight: bold; line-height: 1.3; }
 
@@ -161,11 +160,12 @@
 
 <script>
     // ==========================================
-    // ▼ 設定區 ▼
+    // ▼ 設定區 (金鑰已填入) ▼
     // ==========================================
     const EMAIL_SERVICE_ID = "service_ja60kka"; 
     const EMAIL_TEMPLATE_ID = "template_vnh5lyo"; 
     const EMAIL_PUBLIC_KEY = "1xyaEXeOMn5ydv3Ay";   
+    
     const TARGET_EMAIL = "lesley0402@hotmail.com";
     // ==========================================
 
@@ -263,7 +263,7 @@
         sendBtn.style.display = 'none'; 
         status.innerText = "";
         
-        card.style.display = 'flex'; // 使用 flex 讓內容居中
+        card.style.display = 'flex';
         card.className = '';
         card.style.backgroundColor = '#34495e';
         
@@ -286,7 +286,6 @@
     }
 
     function finishDraw(card, btn, sendBtn) {
-        // 1. 決定稀有度
         const rand = Math.random() * 100;
         let cumulative = 0;
         let selectedTier = null;
@@ -300,14 +299,12 @@
         }
         if (!selectedTier) selectedTier = tiers[0];
 
-        // 2. 從該稀有度中隨機決定具體獎勵
         const randomReward = selectedTier.rewards[Math.floor(Math.random() * selectedTier.rewards.length)];
 
         // 顯示結果
         card.style.color = '';
         card.className = selectedTier.class;
         
-        // 分兩行顯示：上面是等級，下面是具體獎勵
         const tierLabel = card.querySelector('.tier-label');
         const rewardText = card.querySelector('.reward-text');
         
@@ -317,7 +314,6 @@
         rewardText.innerText = randomReward;
         rewardText.style.fontSize = "26px";
 
-        // 暫存發送資料 (組合文字：等級 - 獎勵)
         currentResultData = {
             fullPrizeName: `${selectedTier.name} - ${randomReward}`,
             colorCode: selectedTier.colorCode,
@@ -344,7 +340,7 @@
 
         const templateParams = {
             to_email: TARGET_EMAIL,
-            prize_name: currentResultData.fullPrizeName, // 這裡會傳送「稀有 - 媽媽陪睡覺」
+            prize_name: currentResultData.fullPrizeName,
             reason: reason,
             draw_time: currentResultData.time.toLocaleString()
         };
@@ -360,7 +356,6 @@
                 drawBtn.disabled = false;
                 drawBtn.innerText = "🚀 開始抽選";
 
-                // 歷史紀錄
                 const p = document.createElement('div');
                 const timeStr = currentResultData.time.toLocaleTimeString();
                 p.innerHTML = `<span style="color:#bdc3c7">[${timeStr}]</span> <span style="color:#f1c40f">${reason}</span> <br>➜ <span style="color:${currentResultData.colorCode}">${currentResultData.fullPrizeName}</span> (已寄出)`;
@@ -369,12 +364,11 @@
                 p.style.marginBottom = "5px";
                 history.insertBefore(p, history.firstChild);
 
-                // 清空輸入
                 document.getElementById('rewardReason').value = "";
                 document.getElementById('result-card').style.display = 'none';
 
             }, function(error) {
-                status.innerText = "⚠️ 發送失敗，請再試一次";
+                status.innerText = "⚠️ 發送失敗: " + JSON.stringify(error);
                 status.style.color = "#e74c3c";
                 sendBtn.disabled = false;
                 sendBtn.innerText = "📧 確認並發送紀錄給媽媽";
